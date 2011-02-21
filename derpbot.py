@@ -1,11 +1,10 @@
 # -*- coding: cp1252 -*-
-from numpy import zeros
-from numpy import uint8
 from construct import Container
 
-import packets
 from timer import Timer, TimerManager
 from storage import Storage
+from util import Singleton
+import packets
 import handlers
 import loghandler
 
@@ -78,8 +77,9 @@ class Connection(object):
 
 #entity-(position|location|orientation)' | egrep -v '(create:|velocity:|chunk:|ping:|time:
 
-class Derpbot(object):
+class Derpbot(Singleton):
     def __init__(self):
+        Singleton.__init__(self)
 
         loghandler.RootHandler(self)
         self.conn = Connection(self, SERVER, PORT, USERNAME)
