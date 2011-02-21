@@ -2,6 +2,7 @@ import chat
 reload(chat)
 import handlers
 from timer import Timer
+from util import bind_to_derpbot
 
 from construct import Container
 import packets
@@ -14,12 +15,14 @@ log = logging.getLogger('handlers')
 
 on_chat = chat.on_chat
 
+@bind_to_derpbot
 def on_spawn(self, name, header, payload):
     self.x = payload.x
     self.y = payload.y
     self.z = payload.z
     #self.stance = self.y + 1.62
 
+@bind_to_derpbot
 def on_location(self, name, header, payload):
     self.x = payload.position.x
     self.y = payload.position.y
@@ -27,6 +30,7 @@ def on_location(self, name, header, payload):
     self.stance = payload.position.stance
     send_position(self, False)
 
+@bind_to_derpbot
 def send_position(self, change=True):
     if change and self.path:
         self.path.step()
@@ -45,6 +49,7 @@ def send_position(self, change=True):
         flying=flying)
 
 
+@bind_to_derpbot
 def on_handshake(self, name, header, payload):
     def reloader(self):
         import handlers
@@ -61,10 +66,12 @@ class Player(object):
         self.z = z
         
 
+@bind_to_derpbot
 def on_player(self, name, header, payload):
     self.players[payload.eid] = Player(payload.username, payload.eid,
         payload.x / 32.0, payload.y / 32.0, payload.z / 32.0)
 
+@bind_to_derpbot
 def on_entity_position(self, name, header, payload):
     if payload.eid in self.players:
         player = self.players[payload.eid]
@@ -72,6 +79,7 @@ def on_entity_position(self, name, header, payload):
         player.y += payload.y / 32.0
         player.z += payload.z / 32.0
 
+@bind_to_derpbot
 def on_entity_location(self, name, header, payload):
     if payload.eid in self.players:
         player = self.players[payload.eid]
@@ -79,10 +87,12 @@ def on_entity_location(self, name, header, payload):
         player.y += payload.y / 32.0
         player.z += payload.z / 32.0
 
+@bind_to_derpbot
 def on_destroy(self, name, header, payload):
     if payload.eid in self.players:
         del self.players[payload.eid]
 
+@bind_to_derpbot
 def on_health(self, name, header, payload):
     newhealth = payload.hp / 2.0
     if newhealth < self.health:

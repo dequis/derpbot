@@ -10,3 +10,7 @@ class Singleton(object):
     @classmethod
     def get(cls):
         return cls.instance or cls()
+
+import __main__
+def bind_to_derpbot(f):
+    return f.__get__(__main__.Derpbot.get())

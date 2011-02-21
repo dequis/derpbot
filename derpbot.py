@@ -112,8 +112,7 @@ class Derpbot(Singleton):
 
                 try:
                     reload(handlers)
-                    fn2 = getattr(handlers, method, noop).__get__(self)
-                    fn2(name, header, payload)
+                    fn2 = getattr(handlers, method, noop)(name, header, payload)
                 except:
                     log.exception("Handler exception")
 
