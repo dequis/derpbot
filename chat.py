@@ -20,26 +20,26 @@ def on_chat(self, name, header, payload):
         match = regex.match(payload.message)
         if match:
             nick, message = match.groups()
-            getattr(chat, "on_chat_%s" % type)(self, nick, message)
+            getattr(chat, "on_chat_%s" % type)(nick, message)
             break
 
 @bind_to_derpbot
 def on_chat_public(self, nick, message):
     if message.startswith("!"):
         reply = lambda x: self.chat("%s: %s" % (nick, x))
-        on_command_line(self, nick, message[1:], reply)
+        on_command_line(nick, message[1:], reply)
 
 on_chat_irc_public = on_chat_public
 
 @bind_to_derpbot
 def on_chat_private(self, nick, message):
     reply = lambda x: self.chat("/tell %s %s" % (nick, x))
-    on_command_line(self, nick, message.lstrip("!"), reply)
+    on_command_line(nick, message.lstrip("!"), reply)
 
 @bind_to_derpbot
 def on_chat_irc_private(self, nick, message):
     reply = lambda x: self.chat("/ircw %s %s" % (nick, x))
-    on_command_line(self, nick, message.lstrip("!"), reply)
+    on_command_line(nick, message.lstrip("!"), reply)
 
 @bind_to_derpbot
 def on_command_line(self, nick, cmdline, reply):
@@ -47,7 +47,7 @@ def on_command_line(self, nick, cmdline, reply):
     cmdname = cmdline.split()[0]
     args = ' '.join(cmdline.split()[1:])
     noop = lambda self, nick, args, reply: None
-    getattr(chat, "cmd_%s" % cmdname, noop)(self, nick, args, reply)
+    getattr(chat, "cmd_%s" % cmdname, noop)(nick, args, reply)
 
 
 ### Commands
@@ -89,7 +89,7 @@ def cmd_respawn(self, nick, args, reply):
 
 @bind_to_derpbot
 def cmd_whereis(self, nick, args, reply):
-    p = find_player(self, args)
+    p = find_player(args)
     if p:
         reply("found (eid=%s) at %.2f / %.2f / %.2f" % (p.eid, p.x, p.y, p.z))
 
@@ -105,7 +105,7 @@ def find_player(self, name):
 
 @bind_to_derpbot
 def cmd_tp(self, nick, args, reply):
-    p = find_player(self, args)
+    p = find_player(args)
     if p:
         self.x = p.x + 1
         self.y = p.y

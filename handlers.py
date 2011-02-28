@@ -28,7 +28,7 @@ def on_location(self, name, header, payload):
     self.y = payload.position.y
     self.z = payload.position.z
     self.stance = payload.position.stance
-    send_position(self, False)
+    send_position(False)
 
 @bind_to_derpbot
 def send_position(self, change=True):
@@ -54,7 +54,7 @@ def on_handshake(self, name, header, payload):
     def reloader(self):
         import handlers
         reload(handlers)
-        return handlers.send_position(self)
+        return handlers.send_position()
     Timer('position', 0.5, self, target=reloader).start()
 
 class Player(object):

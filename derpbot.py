@@ -5,7 +5,6 @@ from timer import Timer, TimerManager
 from storage import Storage
 from util import Singleton
 import packets
-import handlers
 import loghandler
 
 import sys
@@ -111,7 +110,7 @@ class Derpbot(Singleton):
                 fn(name, header, payload)
 
                 try:
-                    reload(handlers)
+                    handlers = reload(__import__('handlers'))
                     fn2 = getattr(handlers, method, noop)(name, header, payload)
                 except:
                     log.exception("Handler exception")
