@@ -117,7 +117,7 @@ class Derpbot(Singleton):
                     log.exception("Handler exception")
 
     def on_handshake(self, name, header, payload):
-        self.conn.send_packet("login", protocol=8, username=USERNAME,
+        self.conn.send_packet("login", protocol=9, username=USERNAME,
             unused='Password', seed=0, dimension=0)
 
     def on_ping(self, name, header, payload):

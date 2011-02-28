@@ -45,7 +45,7 @@ def send_position(self, change=True):
    
     self.conn.send_packet("location",
         position=position,
-        look=look,
+        orientation=look,
         flying=flying)
 
 

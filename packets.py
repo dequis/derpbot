@@ -2,12 +2,12 @@ import functools
 
 from construct import Struct, Container, Embed, Enum, MetaField
 from construct import MetaArray, If, Switch, Const, Peek
+from construct import StringAdapter, RepeatUntil, Field
 from construct import OptionalGreedyRange
 from construct import PascalString
 from construct import UBInt8, UBInt16, UBInt32, UBInt64
-from construct import SBInt8, SBInt16, SBInt32
+from construct import SBInt8, SBInt16, SBInt32, SBInt64
 from construct import BFloat32, BFloat64
-from construct import StringAdapter, RepeatUntil, Field
 
 DUMP_ALL_PACKETS = False
 
@@ -16,20 +16,18 @@ DUMP_ALL_PACKETS = False
 # respect or honor since no client will generate it. Instead, we will get two
 # NULL bytes in a row.
 AlphaString = functools.partial(PascalString,
-    length_field=UBInt16("length"))
-#    encoding="utf8")
-
-metadata = StringAdapter(RepeatUntil(lambda obj, ctx: obj == "\x7f", Field("metadata", 1)))
+    length_field=UBInt16("length"),
+    encoding="utf8")
 
 # Flying, position, and orientation, reused in several places.
 flying = Struct("flying", UBInt8("flying"))
 position = Struct("position",
     BFloat64("x"),
-    BFloat64("stance"),
     BFloat64("y"),
+    BFloat64("stance"),
     BFloat64("z")
 )
-look = Struct("look", BFloat32("rotation"), BFloat32("pitch"))
+orientation = Struct("orientation", BFloat32("rotation"), BFloat32("pitch"))
 
 # Notchian item packing
 items = Struct("items",
@@ -41,6 +39,10 @@ items = Struct("items",
         )),
     ),
 )
+
+# Metadata subconstruct.
+metadata = StringAdapter(RepeatUntil(lambda obj, ctx: obj == "\x7f",
+    Field("metadata", 1)))
 
 # Build faces, used during dig and build.
 faces = {
@@ -60,7 +62,7 @@ packets = {
         UBInt32("protocol"),
         AlphaString("username"),
         AlphaString("unused"),
-        UBInt64("seed"),
+        SBInt64("seed"),
         UBInt8("dimension"),
     ),
     2: Struct("handshake",
@@ -94,10 +96,16 @@ packets = {
     9: Struct("respawn"),
     10: flying,
     11: Struct("position", position, flying),
-    12: Struct("orientation", look, flying),
-    13: Struct("location", position, look, flying),
+    12: Struct("orientation", orientation, flying),
+    13: Struct("location", position, orientation, flying),
     14: Struct("digging",
-        UBInt8("state"),
+        Enum(UBInt8("state"),
+            started=0,
+            digging=1,
+            stopped=2,
+            broken=3,
+            dropped=4,
+        ),
         SBInt32("x"),
         UBInt8("y"),
         SBInt32("z"),
@@ -105,13 +113,20 @@ packets = {
     ),
     15: Struct("build",
         SBInt32("x"),
-        SBInt8("y"),
+        UBInt8("y"),
         SBInt32("z"),
         face,
         Embed(items),
     ),
     16: Struct("equip",
         UBInt16("item"),
+    ),
+    17: Struct("mystery0x11",
+        UBInt32("one"),
+        UBInt8("two"),
+        UBInt32("three"),
+        UBInt8("four"),
+        UBInt32("five"),
     ),
     18: Struct("animate",
         UBInt32("eid"),
@@ -159,14 +174,40 @@ packets = {
     ),
     23: Struct("vehicle",
         UBInt32("eid"),
-        UBInt8("type"),
+        Enum(UBInt8("type"),
+            boat=1,
+            minecart=10,
+            storage_cart=11,
+            powered_cart=12,
+            tnt=50,
+            arrow=60,
+            snowball=61,
+            egg=62,
+            sand=70,
+            gravel=71,
+            fishing_float=90,
+        ),
         SBInt32("x"),
         SBInt32("y"),
         SBInt32("z"),
     ),
     24: Struct("mob",
         UBInt32("eid"),
-        UBInt8("type"),
+        Enum(UBInt8("type"),
+            creeper=50,
+            skeleton=51,
+            spider=52,
+            giant_zombie=53,
+            zombie=54,
+            slime=55,
+            ghast=56,
+            pigman=57,
+            pig=90,
+            sheep=91,
+            cow=92,
+            hen=93,
+            squid=94,
+        ),
         SBInt32("x"),
         SBInt32("y"),
         SBInt32("z"),
@@ -181,6 +222,14 @@ packets = {
         SBInt32("y"),
         SBInt32("z"),
         UBInt32("type"),
+    ),
+    27: Struct("mystery0x1b",
+        BFloat32("one"),
+        BFloat32("two"),
+        BFloat32("three"),
+        BFloat32("four"),
+        UBInt8("five"),
+        UBInt8("six"),
     ),
     28: Struct("velocity",
         UBInt32("eid"),
@@ -229,7 +278,7 @@ packets = {
         UBInt32("eid"),
         UBInt32("vid"),
     ),
-    40: Struct("entity-metadata",
+    40: Struct("metadata",
         UBInt32("eid"),
         metadata,
     ),
@@ -289,6 +338,7 @@ packets = {
             inventory=0,
             workbench=1,
             furnace=2,
+            dispenser=3,
         ),
         AlphaString("title"),
         UBInt8("slots"),
@@ -440,7 +490,7 @@ packets_by_name = {
     "teleport"           : 34,
     "status"             : 38,
     "attach"             : 39,
-    "entity-metadata"    : 40,
+    "metadata"           : 40,
     "prechunk"           : 50,
     "chunk"              : 51,
     "batch"              : 52,
