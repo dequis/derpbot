@@ -20,7 +20,7 @@ AlphaString = functools.partial(PascalString,
     encoding="utf8")
 
 # Flying, position, and orientation, reused in several places.
-flying = Struct("flying", UBInt8("flying"))
+grounded = Struct("grounded", UBInt8("grounded"))
 position = Struct("position",
     BFloat64("x"),
     BFloat64("y"),
@@ -94,10 +94,10 @@ packets = {
         UBInt16("hp"),
     ),
     9: Struct("respawn"),
-    10: flying,
-    11: Struct("position", position, flying),
-    12: Struct("orientation", orientation, flying),
-    13: Struct("location", position, orientation, flying),
+    10: grounded,
+    11: Struct("position", position, grounded),
+    12: Struct("orientation", orientation, grounded),
+    13: Struct("location", position, orientation, grounded),
     14: Struct("digging",
         Enum(UBInt8("state"),
             started=0,
@@ -251,7 +251,7 @@ packets = {
     ),
     32: Struct("entity-orientation",
         UBInt32("eid"),
-        UBInt8("rotation"),
+        UBInt8("yaw"),
         UBInt8("pitch")
     ),
     33: Struct("entity-location",
@@ -259,7 +259,7 @@ packets = {
         SBInt8("x"),
         SBInt8("y"),
         SBInt8("z"),
-        UBInt8("rotation"),
+        UBInt8("yaw"),
         UBInt8("pitch")
     ),
     34: Struct("teleport",
@@ -267,8 +267,8 @@ packets = {
         SBInt32("x"),
         SBInt32("y"),
         SBInt32("z"),
-        SBInt8("yaw"),
-        SBInt8("pitch"),
+        UBInt8("yaw"),
+        UBInt8("pitch"),
     ),
     38: Struct("status",
         UBInt32("eid"),
@@ -294,6 +294,8 @@ packets = {
         UBInt8("x_size"),
         UBInt8("y_size"),
         UBInt8("z_size"),
+        # XXX: notchian servers sometimes send incomplete zlib data
+        # removed encoding="zlib" from here
         PascalString("data", length_field=UBInt32("length")),
     ),
     52: Struct("batch",
@@ -466,7 +468,7 @@ packets_by_name = {
     "use"                : 7,
     "health"             : 8,
     "respawn"            : 9,
-    "flying"             : 10,
+    "grounded"           : 10,
     "position"           : 11,
     "orientation"        : 12,
     "location"           : 13,
@@ -517,11 +519,14 @@ def make_packet(packet, *args, **kwargs):
     well.
     """
 
-    if packet not in packets_by_name:
-        print "Couldn't find packet name %s!" % packet
-        return ""
+    if isinstance(packet, int):
+        header = packet
+    else:
+        if packet not in packets_by_name:
+            print "Couldn't find packet name %s!" % packet
+            return ""
 
-    header = packets_by_name[packet]
+        header = packets_by_name[packet]
 
     for arg in args:
         kwargs.update(dict(arg))
