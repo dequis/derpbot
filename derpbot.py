@@ -91,7 +91,7 @@ class Derpbot(Singleton):
         self.stance = 0
         self.yaw = 180
         self.pitch = 180
-        self.flying = 1
+        self.grounded = 1
 
         self.health = 0
 

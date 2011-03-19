@@ -41,12 +41,12 @@ def send_position(self, change=True):
 
     position = Container(x=self.x, y=self.stance, stance=self.y, z=self.z)
     look = Container(rotation=self.yaw, pitch=self.pitch)
-    flying = Container(flying=self.flying)
+    grounded = Container(grounded=self.grounded)
    
     self.conn.send_packet("location",
         position=position,
         orientation=look,
-        flying=flying)
+        grounded=grounded)
 
 
 @bind_to_derpbot
