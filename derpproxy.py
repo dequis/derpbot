@@ -1,6 +1,7 @@
 # -*- coding: cp1252 -*-
-from construct import Container
 
+import init_config
+from config import derpproxy as config
 import packets
 import loghandler
 
@@ -12,10 +13,6 @@ import random
 import logging
 
 log = logging.getLogger('derpproxy')
-
-# enter target server here
-SERVER, PORT = 'localhost', 25565
-# proxy always listens on 127.0.0.1:25566
 
 class BaseSocket(object):
     def __init__(self, socket=None):
@@ -38,16 +35,17 @@ class BaseSocket(object):
         return self.socket.fileno()
 
 class ProxyServer(BaseSocket):
-    def __init__(self, derpproxy, bind, port):
+    def __init__(self):
         BaseSocket.__init__(self)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind((bind, port))
+        self.socket.bind(config.proxy_bind)
         self.socket.listen(1)
         self.clientsocket = None
         self.clientaddr = ('', 0)
         self.serversocket = None
 
+        loghandler.RootHandler()
         self.log = logging.getLogger('proxy')
         self.packlog = logging.getLogger('relay')
         self.packhandler = loghandler.PacketHandler(self.packlog)
@@ -64,7 +62,7 @@ class ProxyServer(BaseSocket):
         sock, addr = self.socket.accept()
         self.log.info("Client connected %s:%s" % addr)
         serversock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        serversock.connect((SERVER, PORT))
+        serversock.connect(config.server)
 
         [x.on_close() for x
             in [self.clientsocket, self.serversocket]
@@ -96,18 +94,10 @@ class RelaySocket(BaseSocket):
         data = self.buffer_recv()
         for header, payload in data:
             self.proxy.packlog.debug(self.name, header, payload)
-            if not self.proxy.filter(header, payload):
+            if not self.proxy.filter(header, payload, self.target):
                 origdata = packets.make_packet(header, payload)
                 self.target.send(origdata)
                 
 
-class DerpProxy(object):
-    def __init__(self):
-        loghandler.RootHandler(self)
-        self.proxy = ProxyServer(self, '127.0.0.1', 25566)
-
-    def start(self):
-        self.proxy.loop()
-
 if __name__ == '__main__':
-    DerpProxy().start()
+    ProxyServer().loop()

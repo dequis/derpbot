@@ -1,0 +1,6 @@
+from default_config import *
+
+# add or remove packet names here
+logging.filters = ['chunk', 'entity-location', 'entity-orientation', 'entity-position', 'create', 'velocity', 'location', 'ping', 'animate', 'destroy', 'mob', 'grounded']
+
+derpbot.server = derpproxy.server = ('your.server.here', 25565)

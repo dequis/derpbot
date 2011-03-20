@@ -14,3 +14,7 @@ class Singleton(object):
 import __main__
 def bind_to_derpbot(f):
     return f.__get__(__main__.Derpbot.get())
+
+class dict2(dict):
+    __getattr__ = lambda *args: dict.__getitem__(*args)
+    __setattr__ = lambda *args: dict.__setitem__(*args)

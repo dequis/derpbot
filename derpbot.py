@@ -1,11 +1,15 @@
 # -*- coding: cp1252 -*-
-from construct import Container
+
+import init_config
+from config import derpbot as config
 
 from timer import Timer, TimerManager
 from storage import Storage
 from util import Singleton
 import packets
 import loghandler
+
+from construct import Container
 
 import sys
 import time
@@ -15,10 +19,6 @@ import random
 import logging
 
 log = logging.getLogger('derpbot')
-
-
-SERVER, PORT = 'localhost', 25565
-USERNAME = 'derpbot' #spasysheep
 
 class Connection(object):
     def __init__(self, derpbot, host, port, username):
@@ -81,7 +81,9 @@ class Derpbot(Singleton):
         Singleton.__init__(self)
 
         loghandler.RootHandler(self)
-        self.conn = Connection(self, SERVER, PORT, USERNAME)
+
+        host, port = config.server
+        self.conn = Connection(self, host, port, config.username)
         self.packhandler = self.conn.packhandler
 
         self.timers = TimerManager.get()

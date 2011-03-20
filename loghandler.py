@@ -3,7 +3,7 @@ import logging
 import packets
 import traceback
 
-from storage import Storage
+import config
 
 class PacketHandler(logging.StreamHandler):
     def __init__(self, packlog):
@@ -11,8 +11,8 @@ class PacketHandler(logging.StreamHandler):
         packlog.handlers = [self]
         packlog.propagate = 0
 
-        self.filtered = Storage.get().setdefault('filtered', [])
-        for name in ['chunk', 'entity-location', 'entity-orientation','entity-position','create','velocity','location','ping','time','animate','destroy','mob']:
+        self.filtered = []
+        for name in config.logging.filters:
             self.add_filter_by_name(name)
 
     def add_filter_by_name(self, name):
@@ -43,7 +43,7 @@ class Formatter(logging.Formatter):
         self.datefmt = '%H:%M'
 
 class RootHandler(logging.StreamHandler):
-    def __init__(self, derpbot):
+    def __init__(self, derpbot=None):
         logging.StreamHandler.__init__(self)
         self.derpbot = derpbot
         self.last_exc = ''
@@ -55,7 +55,7 @@ class RootHandler(logging.StreamHandler):
         self.setLevel(0)
 
     def emit(self, record):
-        if record.exc_info:
+        if self.derpbot and record.exc_info:
             lastline = traceback.format_exception(*record.exc_info)[-1].strip()
             if self.last_exc != lastline:
                 self.derpbot.chat(lastline)
