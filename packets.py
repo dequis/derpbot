@@ -2,12 +2,12 @@ import functools
 
 from construct import Struct, Container, Embed, Enum, MetaField
 from construct import MetaArray, If, Switch, Const, Peek
-from construct import StringAdapter, RepeatUntil, Field
 from construct import OptionalGreedyRange
 from construct import PascalString
 from construct import UBInt8, UBInt16, UBInt32, UBInt64
 from construct import SBInt8, SBInt16, SBInt32, SBInt64
 from construct import BFloat32, BFloat64
+from construct import BitStruct, BitField
 
 DUMP_ALL_PACKETS = False
 
@@ -40,9 +40,39 @@ items = Struct("items",
     ),
 )
 
+# Metadata inner container.
+metadata_switch = {
+    0: UBInt8("value"),
+    1: UBInt16("value"),
+    2: UBInt32("value"),
+    3: BFloat32("value"),
+    4: AlphaString("value"),
+    5: Struct("slot",
+        UBInt16("primary"),
+        UBInt8("count"),
+        UBInt16("secondary"),
+    ),
+    6: Struct("coords",
+        UBInt32("x"),
+        UBInt32("y"),
+        UBInt32("z"),
+    ),
+}
+
 # Metadata subconstruct.
-metadata = StringAdapter(RepeatUntil(lambda obj, ctx: obj == "\x7f",
-    Field("metadata", 1)))
+metadata = Struct("metadata",
+    OptionalGreedyRange(
+        Struct("data",
+            BitStruct("id",
+                BitField("first", 3),
+                BitField("second", 5),
+            ),
+            Switch("value", lambda context: context["id"]["first"],
+                metadata_switch),
+        ),
+    ),
+    Const(UBInt8("terminator"), 0x7f),
+)
 
 # Build faces, used during dig and build.
 faces = {
@@ -333,6 +363,9 @@ packets = {
         BFloat32("unknown4"),
         UBInt32("count"),
         MetaField("unknown5", lambda context: context["count"] * 3),
+    ),
+    70: Struct("unknown-0x46",
+        UBInt8("unknown1"),
     ),
     100: Struct("window-open",
         UBInt8("wid"),
@@ -644,6 +677,6 @@ def make_infinipacket(packet, *args, **kwargs):
 
     if DUMP_ALL_PACKETS:
         print "Making packet %s (%d)" % (packet, header)
-        print container
-    payload = packets[header].build(container)
+        print payload
+    payload = packets[header].build(payload)
     return chr(header) + payload
