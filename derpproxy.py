@@ -2,8 +2,10 @@
 
 import init_config
 from config import derpproxy as config
+
 import packets
 import loghandler
+from util import Singleton
 
 import sys
 import time
@@ -34,9 +36,10 @@ class BaseSocket(object):
     def fileno(self):
         return self.socket.fileno()
 
-class ProxyServer(BaseSocket):
+class ProxyServer(BaseSocket, Singleton):
     def __init__(self):
         BaseSocket.__init__(self)
+        Singleton.__init__(self)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(config.proxy_bind)
@@ -51,6 +54,11 @@ class ProxyServer(BaseSocket):
         self.packhandler = loghandler.PacketHandler(self.packlog)
 
         self.usablefds = [self]
+
+        self.filters = {} # {modulename.functionname: function}
+        self.enabledfilters = {}
+
+        self.reload_modules()
 
     def loop(self):
         while True:
@@ -71,9 +79,41 @@ class ProxyServer(BaseSocket):
         self.clientsocket = RelaySocket('Client', sock, self, serversock)
         self.serversocket = RelaySocket('Server', serversock, self, sock)
 
-    def filter(self, header, payload):
-        # if this returns false, no filtering is done
-        return False
+    def filter(self, header, payload, target):
+        self.stopped_filtering = False
+        self.stopped_relaying = False
+        for function in self.filters.values():
+            function(header, payload, target)
+            if self.stopped_filtering:
+                break
+
+        return self.stopped_relaying
+
+    def stop_filter(self):
+        self.stopped_filtering = True
+
+    def stop_relay(self):
+        self.stopped_relaying = True
+
+    def reload_modules(self):
+        self.filters = {}
+        self.enabledfilters = {}
+        for modulename in config.modules:
+            fullname = 'proxymods.%s' % modulename
+            if fullname in sys.modules:
+                reload(sys.modules[fullname])
+            else:
+                __import__('proxymods.%s' % modulename)
+
+        origset = set(self.filters.keys())
+        filteredset = origset.copy()
+
+        for pattern in config.disabled_filters:
+            filteredset -= set(fnmatch.filter(filteredset, pattern))
+
+        for key in filteredset:
+            self.enabledfilters[key] = self.filters[key]
+
 
 class RelaySocket(BaseSocket):
     def __init__(self, name, source, proxy, target):

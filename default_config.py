@@ -10,3 +10,5 @@ derpbot.username = 'derpbot'
 derpproxy = _dict2()
 derpproxy.server = ('localhost', 25565)
 derpproxy.proxy_bind = ('127.0.0.1', 25566)
+derpproxy.modules = []
+derpproxy.disabled_filters = [] # wildcard list
